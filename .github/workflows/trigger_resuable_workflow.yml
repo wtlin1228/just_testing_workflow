@@ -1,0 +1,64 @@
+name: Trigger Resuable Workflow
+
+on:
+    pull_request:
+        types:
+            - closed
+
+jobs:
+    get_versions:
+        runs-on: ubuntu-latest
+        outputs:
+            package_version: ${{ steps.get_package_version.outputs.version }}
+            rc_version: ${{ steps.get_rc_version.outputs.version }}
+        steps:
+            - name: Get Package Version
+              id: get_package_version
+              shell: bash
+              run: echo "version=`node -e \"console.log(require('./package.json').version);\"`" >> $GITHUB_OUTPUT
+            
+            - name: Get RC Version
+              id: get_rc_version
+              uses: madhead/semver-utils@cd1ddc05fca0b1514b697c2ca9fe88d4df4000ae
+              with:
+                version: ${{ steps.get-package-version.outputs.version }}
+
+    trigger_production_workflow:
+        needs: get_versions
+        if: |
+            github.event.pull_request.merged
+            && github.base_ref == 'master'
+            && !startsWith(github.head_ref, 'port/')
+        uses: ./.github/actions/trigger-reusable-workflow
+        with:
+            inputs: |
+                {
+                    "name": "Production Workflow - ${{ needs.get_versions.outputs.package_version }}",
+                }
+
+    trigger_release_candidate_workflow:
+        needs: get_versions
+        if: |
+            github.event.pull_request.merged
+            && github.base_ref == 'develop'
+            && startsWith(github.head_ref, 'port/')
+        uses: ./.github/actions/trigger-reusable-workflow
+        with:
+            inputs: |
+                {
+                    "name": "Release Candidate Workflow - ${{ needs.get_versions.outputs.rc_version }}",
+                }
+
+    trigger_develop_workflow:
+        if: |
+            github.event.pull_request.merged && (
+            github.base_ref == 'develop'
+            || startsWith(github.base_ref, 'release/')
+            || startsWith(github.base_ref, 'project/')
+            || startsWith(github.base_ref, 'hotfix/'))
+        uses: ./.github/actions/trigger-reusable-workflow
+        with:
+            inputs: |
+                {
+                    "name": "Develop Workflow - ${{ github.base_ref }}",
+                }
