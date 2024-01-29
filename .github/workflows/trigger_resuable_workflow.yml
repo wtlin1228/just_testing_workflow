@@ -6,11 +6,6 @@ on:
             - closed
 
 jobs:
-    checkout:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-
     get_versions:
         runs-on: ubuntu-latest
         outputs:
