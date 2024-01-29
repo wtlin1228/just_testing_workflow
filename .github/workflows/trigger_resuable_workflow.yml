@@ -27,7 +27,7 @@ jobs:
         needs: get_versions
         if: |
             github.event.pull_request.merged
-            && github.base_ref == 'master'
+            && github.base_ref == 'main'
             && !startsWith(github.head_ref, 'port/')
         uses: ./.github/actions/trigger-reusable-workflow
         with:
